@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow xmlns="http://www.springframework.org/schema/webflow"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="
+      	http://www.springframework.org/schema/webflow
+      	https://www.springframework.org/schema/webflow/spring-webflow-2.0.xsd">
+
+	<on-start>
+		<evaluate expression="exampleService.getVar1()" result="flowScope.var1" />
+		<set name="flowScope.varInt" value="0" type="int" />
+		<set name="flowScope.varBool" value="false" type="java.lang.Boolean" />
+		<set name="flowScope.varString" value="'B'" type="java.lang.String" />
+	</on-start>
+
+	<view-state id="A">
+		<transition on="proceed" to="B">
+			<evaluate expression="exampleService.getVar1()" result="flowScope.var1" />
+		</transition>
+		<transition on="cancel" to="C"/>
+	</view-state>
+
+	<view-state id="B">
+		<transition on="confirm" to="A">
+			<evaluate expression="bookingService.persistBooking(booking)" result="flowScope.varBool" />
+		</transition>
+		<transition on="revise" to="#{flowScope.var1}" />
+	</view-state>
+
+	<view-state id="C">
+		<transition on="proceed" to="end" />
+		<transition on="cancel" to="A" />
+	</view-state>
+
+	<end-state id="end"/>
+
+</flow>
