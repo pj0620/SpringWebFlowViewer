@@ -26,50 +26,93 @@ def make_graph_BFS(flowdom, track_vars, config):
     print("start_state = " + start_state)
 
     # scan on-start for variable configuration
-    on_start_node = flowdom.getElementsByTagName('on-start')[0]
-    for evaluate_node in on_start_node.getElementsByTagName('evaluate'):
-        handle_evaluate_node(evaluate_node, context, method_vals)
-    for set_node in on_start_node.getElementsByTagName('set'):
-        handle_set_node(set_node, context)
+    on_start_node = flowdom.getElementsByTagName('on-start')
+    if on_start_node:
+        print("Parsing on-start...")
+        parse_non_transitions_node(on_start_node[0], context, method_vals)
 
     # for speed build map from state id to dom objects
     stateDOM_map = {}
+    end_states = set()
     for state_name in ALL_STATES:
         state_nodes = flowdom.getElementsByTagName(state_name)
         for state_node in state_nodes:
             state = state_node.getAttribute("id")
             stateDOM_map[state] = state_node
+            if state_name == "end-state":
+                end_states.add(state_name)
+
+    print(f"context = {context}")
 
     nodes_states_map = {}
     edges = []
-    queue = [start_state]
-    scanDomBFS(queue, context, edges, nodes_states_map, stateDOM_map)
+    visited = set()
+    scanDomBFS(start_state, visited, context, edges, nodes_states_map, stateDOM_map, end_states, method_vals)
 
-    return None, []
+    print(edges)
 
-def scanDomBFS(queue, context, edges, nodes_state_map, stateDOM_map):
-    cur = queue.pop(0)
+    G = nx.DiGraph()
+    G.add_edges_from(edges)
+    # colors = [STATE_COLORS[nodes_states_map[node]] for node in G.nodes()]
+    colors = ["blue"] * len(G.nodes)
+
+    return G, colors
+
+
+def scanDomBFS(cur, visited, context, edges, nodes_state_map, stateDOM_map, end_states, method_vals):
+    print(f"{cur} -> {visited}")
+
+    if cur in end_states or cur in visited:
+        return
+
+    visited.add(cur)
+
+    next_states = []
     for child in stateDOM_map[cur].childNodes:
         if type(child) != xml.dom.minidom.Element:
             continue
 
-        if child.localName is "transition":
-            next_state_name = child.getAttribute("to")
+        if child.localName == 'evaluate':
+            handle_evaluate_node(child, context, method_vals)
+        elif child.localName == 'set':
+            handle_set_node(child, context)
+        elif child.localName == "transition":
+            next_state = child.getAttribute("to")
+            if next_state:
+                next_states.append(next_state)
+        else:
+            parse_non_transitions_node(child, context, method_vals)
 
-            # if next state is a scope variable, branch with every possibility
-            if "#{" in next_state_name:
-                fixed_next_state = next_state_name.replace("#{", "").replace("}", "")
-                possible_next_states = context.getVar(fixed_next_state).vals
-                for possible_next_state in possible_next_states:
-                    edges.append((cur, possible_next_state))
-                    new_context = copy.deepcopy(context)
-                    new_context.getVar(fixed_next_state).vals = [possible_next_state]
-                    scanDomBFS(queue, new_context, edges, nodes_state_map, stateDOM_map)
+    for next_state in next_states:
+        # if next state is a scope variable, branch with every possibility
+        if "#{" in next_state:
+            fixed_next_state = next_state.replace("#{", "").replace("}", "")
+            possible_next_states = context.getVar(fixed_next_state).get_vals()
+            if not possible_next_states:
+                raise Exception(f"value of {fixed_next_state} cannot be inferred from flow file")
+            for possible_next_state in possible_next_states:
+                edges.append((cur, possible_next_state))
+                new_context = copy.deepcopy(context)
+                new_context.getVar(fixed_next_state).set_vals([possible_next_state])
+                new_visited = copy.deepcopy(visited)
+                new_visited.add(possible_next_state)
+                if stateDOM_map[possible_next_state].childNodes:
+                    parse_non_transitions_node(stateDOM_map[possible_next_state], new_context, method_vals)
+                scanDomBFS(possible_next_state, new_visited, new_context, edges, nodes_state_map, stateDOM_map,
+                           end_states, method_vals)
 
-            # otherwise coninue to next state
-            else:
-                edges.append((cur,next_state_name))
-                scanDomBFS(queue, copy.deepcopy(context), edges, nodes_state_map, stateDOM_map)
+        # otherwise continue to next state
+        else:
+            if next_state in visited:
+                continue
+            edges.append((cur, next_state))
+            new_visited = copy.deepcopy(visited)
+            new_visited.add(next_state)
+            new_context = copy.deepcopy(context)
+            if stateDOM_map[next_state].childNodes:
+                parse_non_transitions_node(stateDOM_map[next_state], new_context, method_vals)
+            scanDomBFS(next_state, new_visited, new_context, edges, nodes_state_map, stateDOM_map, end_states,
+                       method_vals)
 
 
 def make_graph_no_BFS(flowdom):
@@ -111,18 +154,26 @@ def scanDom(flowdom, stateName, edges, nodes_states_map, track_vars):
             add_edge(state, transitionNode.getAttribute("then"))
             add_edge(state, transitionNode.getAttribute("else"))
 
+#
+#   will go beyond first layer
+#
+def parse_non_transitions_node(node, context, method_vals):
+    for evaluate_node in node.getElementsByTagName('evaluate'):
+        handle_evaluate_node(evaluate_node, context, method_vals)
+    for set_node in node.getElementsByTagName('set'):
+        handle_set_node(set_node, context)
 
 def handle_evaluate_node(evaluate_node, context, method_vals):
-    varName = evaluate_node.getAttribute("result")
-    methodCall = evaluate_node.getAttribute("expression")
-    if context.containsVar(varName):
-        if methodCall in method_vals:
-            context.getVar(varName).val = method_vals[methodCall]
+    var_name = evaluate_node.getAttribute("result")
+    method_call = evaluate_node.getAttribute("expression")
+    if context.containsVar(var_name):
+        if method_call in method_vals:
+            context.getVar(var_name).set_vals(method_vals[method_call])
         else:
             raise Exception(
-                "output values of \'" + methodCall + "\' not defined, please define using --method_vals <METHOD_VALUES>")
+                "output values of \'" + method_call + "\' not defined, please define using --method_vals <METHOD_VALUES>")
 
 def handle_set_node(set_node, context):
-    varName = set_node.getAttribute("name")
-    if context.containsVar(varName):
-        context.getVar(varName).set(set_node.getAttribute("value"))
+    var_name = set_node.getAttribute("name")
+    if context.containsVar(var_name):
+        context.getVar(var_name).set_vals([set_node.getAttribute("value")])

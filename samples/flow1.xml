@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow xmlns="http://www.springframework.org/schema/webflow"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/webflow
+		https://www.springframework.org/schema/webflow/spring-webflow-2.0.xsd">
+
+    <on-start>
+        <evaluate expression="testService.getPath()" result="flowScope.path" />
+    </on-start>
+
+	<view-state id="start">
+		<on-render>
+			<evaluate expression="bookingService.findBookings(currentUser?.name)"
+				result="viewScope.bookings" result-type="dataModel" />
+		</on-render>
+		<transition on="a" to="#{flowScope.path}"/>
+	</view-state>
+
+    <view-state id="A1">
+		<transition on="a" to="A2"/>
+	</view-state>
+
+    <view-state id="A2">
+		<transition on="a" to="finish"/>
+	</view-state>
+
+    <view-state id="B1">
+		<transition on="a" to="B2">
+			<set name="flowScope.finalState" value="B1" />
+		</transition>
+	</view-state>
+
+    <view-state id="B2">
+		<transition on="a" to="#{flowScope.finalState}"/>
+	</view-state>
+
+    <view-state id="C1">
+		<transition on="a" to="C2"/>
+	</view-state>
+
+    <view-state id="C2">
+		<transition on="a" to="finish"/>
+	</view-state>
+
+	<end-state id="finish" />
+
+</flow>

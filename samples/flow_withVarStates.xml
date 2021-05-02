@@ -3,13 +3,14 @@
       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:schemaLocation="
       	http://www.springframework.org/schema/webflow
-      	https://www.springframework.org/schema/webflow/spring-webflow-2.0.xsd">
+      	https://www.springframework.org/schema/webflow/spring-webflow-2.0.xsd"
+		start-state="A">
 
 	<on-start>
 <!--		<evaluate expression="exampleService.getVar1()" result="flowScope.varString" />-->
 		<set name="flowScope.varInt" value="0" type="int" />
 		<set name="flowScope.varBool" value="false" type="java.lang.Boolean" />
-<!--		<set name="flowScope.varString" value="'B'" type="java.lang.String" />-->
+		<set name="flowScope.varString" value="'B'" type="java.lang.String" />
 	</on-start>
 
 	<view-state id="A">
