@@ -32,6 +32,7 @@ def main(argv):
         print("Detected scope variables that must be tracked. Building graph using BFS algorithm...")
         G, colors = make_graph_BFS(flowdom, track_vars, config)
 
+    print("Rendering graph...")
     render(G, colors)
 
 if __name__ == "__main__":

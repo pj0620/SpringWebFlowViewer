@@ -66,10 +66,12 @@ def make_graph_BFS(flowdom, track_vars, config):
         stateDOM_map[external_node] = None
         nodes_colors_map[external_node] = EXTERNAL_STATE_COLOR
 
+    print("Mapping flow file...")
     edges = []
     visited = set()
     scanDomBFS(start_state, visited, context, edges, stateDOM_map, end_states, method_vals)
 
+    print("Creating graph from results of scan...")
     G = nx.DiGraph()
     G.add_edges_from(edges)
     colors = [nodes_colors_map[node] for node in G.nodes()]
