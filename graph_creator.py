@@ -6,9 +6,17 @@ from scope import Context
 
 def make_graph_BFS(flowdom, track_vars, config):
     context = Context(track_vars)
+    if 'initial_vals' in config:
+        print("Initializing variables with following : " + config['initial_vals'])
+        try:
+            for initial_val in config['initial_vals'].split(','):
+                context.getVar(initial_val.split(":")[0]).set_vals([initial_val.split(":")[1]])
+        except:
+            raise Exception("error while parsing variable overrides")
 
     method_vals = {}
     if 'method_vals' in config:
+        print("Using following possible returns value for specified methods : " + config['method_vals'])
         try:
             method_vals = {meth_val.split(':')[0]: meth_val.split(':')[1].split('|')
                                 for meth_val in config['method_vals'].split(',')}
@@ -40,7 +48,6 @@ def make_graph_BFS(flowdom, track_vars, config):
         state_nodes = flowdom.getElementsByTagName(state_type)
         for state_node in state_nodes:
             state = state_node.getAttribute("id")
-            print(f"here {state} -> {state_type}")
             stateDOM_map[state] = state_node
             nodes_colors_map[state] = STATE_COLORS[state_type]
             if state_type == "end-state":
@@ -58,6 +65,7 @@ def make_graph_BFS(flowdom, track_vars, config):
 
     return G, colors
 
+"added -i option to initialize a variable"
 
 def scanDomBFS(cur, visited, context, edges, stateDOM_map, end_states, method_vals):
     if cur in end_states or cur in visited:
@@ -94,7 +102,8 @@ def scanDomBFS(cur, visited, context, edges, stateDOM_map, end_states, method_va
             fixed_next_state = next_state.replace("#{", "").replace("}", "")
             possible_next_states = context.getVar(fixed_next_state).get_vals()
             if not possible_next_states:
-                raise Exception(f"value of {fixed_next_state} cannot be inferred from flow file")
+                raise Exception(f"value of {fixed_next_state} cannot be inferred from flow file, please initialize "
+                                f"this variable using using --initialize <VARIABLE VALUES>")
             for possible_next_state in possible_next_states:
                 edges.append((cur, possible_next_state))
                 new_context = copy.deepcopy(context)

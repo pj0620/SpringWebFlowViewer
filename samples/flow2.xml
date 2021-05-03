@@ -6,7 +6,7 @@
 		https://www.springframework.org/schema/webflow/spring-webflow-2.0.xsd">
 
     <on-start>
-        <evaluate expression="testService.getPath()" result="flowScope.path" />
+<!--        <evaluate expression="testService.getPath()" result="flowScope.path" />-->
     </on-start>
 
 	<view-state id="start">
@@ -14,7 +14,7 @@
 			<evaluate expression="bookingService.findBookings(currentUser?.name)"
 				result="viewScope.bookings" result-type="dataModel" />
 		</on-render>
-<!--		<transition on="a" to="#{flowScope.path}"/>-->
+		<transition on="a" to="#{flowScope.path}"/>
 		<if test="condition1" then="A1" else="A2"/>
 	</view-state>
 

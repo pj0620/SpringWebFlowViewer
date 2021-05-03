@@ -3,7 +3,8 @@ import sys
 
 def print_usage():
     print('flow-viewer.py <FLOW FILE> \n   -h, --help : display help\n   -s, --start_state <START-STATE> : add start state for BFS based search'\
-          '\n   -m, --method_vals <METHOD_VALUES> : comma separated list of predefined outputs of methods')
+          '\n   -m, --method_vals <METHOD_VALUES> : comma separated list of predefined outputs of methods'\
+          '\n   -i, --initialize <VARIABLE VALUES> : comma seperated list of initial variable values. Useful when value of variable cannot be infered from flow file')
 
 def parseargs(argv):
     try:
@@ -16,7 +17,7 @@ def parseargs(argv):
 
     config = {}
     try:
-        opts, args = getopt.getopt(argv[2:],"hs:m:",["help","start_state=","method_vals="])
+        opts, args = getopt.getopt(argv[2:],"hs:m:i:",["help","start_state=","method_vals=","initialize="])
     except getopt.GetoptError:
         print_usage()
         sys.exit(2)
@@ -28,7 +29,7 @@ def parseargs(argv):
           config["start_state"] = arg
        elif opt in ("-m", "--method_vals"):
           config["method_vals"] = arg
-
-    print(config)
+       elif opt in ("-i", "--initialize"):
+          config["initial_vals"] = arg
 
     return flowfile, config
