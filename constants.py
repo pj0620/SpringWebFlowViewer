@@ -13,3 +13,5 @@ STATE_COLORS = {
     "action-state": "orange",
     "decision-state": "orange",
 }
+
+START_STATE_COLOR = "green"

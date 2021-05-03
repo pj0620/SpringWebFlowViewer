@@ -1,6 +1,6 @@
 import copy
 import xml
-from constants import ALL_STATES, STATE_COLORS
+from constants import ALL_STATES, STATE_COLORS, START_STATE_COLOR
 import networkx as nx
 from scope import Context
 
@@ -32,36 +32,34 @@ def make_graph_BFS(flowdom, track_vars, config):
         parse_non_transitions_node(on_start_node[0], context, method_vals)
 
     # for speed build map from state id to dom objects
+    # and create map from state id to state type for coloring
     stateDOM_map = {}
     end_states = set()
-    for state_name in ALL_STATES:
-        state_nodes = flowdom.getElementsByTagName(state_name)
+    nodes_colors_map = {}
+    for state_type in ALL_STATES:
+        state_nodes = flowdom.getElementsByTagName(state_type)
         for state_node in state_nodes:
             state = state_node.getAttribute("id")
+            print(f"here {state} -> {state_type}")
             stateDOM_map[state] = state_node
-            if state_name == "end-state":
-                end_states.add(state_name)
+            nodes_colors_map[state] = STATE_COLORS[state_type]
+            if state_type == "end-state":
+                end_states.add(state)
+    nodes_colors_map[start_state] = START_STATE_COLOR
 
-    print(f"context = {context}")
-
-    nodes_states_map = {}
     edges = []
     visited = set()
-    scanDomBFS(start_state, visited, context, edges, nodes_states_map, stateDOM_map, end_states, method_vals)
-
-    print(edges)
+    scanDomBFS(start_state, visited, context, edges, stateDOM_map, end_states, method_vals)
 
     G = nx.DiGraph()
     G.add_edges_from(edges)
-    # colors = [STATE_COLORS[nodes_states_map[node]] for node in G.nodes()]
-    colors = ["blue"] * len(G.nodes)
+    colors = [nodes_colors_map[node] for node in G.nodes()]
+    # colors = ["blue"] * len(G.nodes)
 
     return G, colors
 
 
-def scanDomBFS(cur, visited, context, edges, nodes_state_map, stateDOM_map, end_states, method_vals):
-    print(f"{cur} -> {visited}")
-
+def scanDomBFS(cur, visited, context, edges, stateDOM_map, end_states, method_vals):
     if cur in end_states or cur in visited:
         return
 
@@ -80,6 +78,13 @@ def scanDomBFS(cur, visited, context, edges, nodes_state_map, stateDOM_map, end_
             next_state = child.getAttribute("to")
             if next_state:
                 next_states.append(next_state)
+        elif child.localName == "if":
+            next_state_then = child.getAttribute("then")
+            if next_state_then:
+                next_states.append(next_state_then)
+            next_state_else = child.getAttribute("else")
+            if next_state_else:
+                next_states.append(next_state_else)
         else:
             parse_non_transitions_node(child, context, method_vals)
 
@@ -95,11 +100,9 @@ def scanDomBFS(cur, visited, context, edges, nodes_state_map, stateDOM_map, end_
                 new_context = copy.deepcopy(context)
                 new_context.getVar(fixed_next_state).set_vals([possible_next_state])
                 new_visited = copy.deepcopy(visited)
-                new_visited.add(possible_next_state)
                 if stateDOM_map[possible_next_state].childNodes:
                     parse_non_transitions_node(stateDOM_map[possible_next_state], new_context, method_vals)
-                scanDomBFS(possible_next_state, new_visited, new_context, edges, nodes_state_map, stateDOM_map,
-                           end_states, method_vals)
+                scanDomBFS(possible_next_state, new_visited, new_context, edges, stateDOM_map, end_states, method_vals)
 
         # otherwise continue to next state
         else:
@@ -107,12 +110,10 @@ def scanDomBFS(cur, visited, context, edges, nodes_state_map, stateDOM_map, end_
                 continue
             edges.append((cur, next_state))
             new_visited = copy.deepcopy(visited)
-            new_visited.add(next_state)
             new_context = copy.deepcopy(context)
             if stateDOM_map[next_state].childNodes:
                 parse_non_transitions_node(stateDOM_map[next_state], new_context, method_vals)
-            scanDomBFS(next_state, new_visited, new_context, edges, nodes_state_map, stateDOM_map, end_states,
-                       method_vals)
+            scanDomBFS(next_state, new_visited, new_context, edges, stateDOM_map, end_states, method_vals)
 
 
 def make_graph_no_BFS(flowdom):
