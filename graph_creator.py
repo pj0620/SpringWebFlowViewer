@@ -116,6 +116,8 @@ def scanDomBFS(cur, visited, context, edges, stateDOM_map, end_states, method_va
                 raise Exception(f"value of {fixed_next_state} cannot be inferred from flow file, please initialize "
                                 f"this variable using using --initialize <VARIABLE VALUES>")
             for possible_next_state in possible_next_states:
+                if possible_next_state == "null":
+                    continue
                 edges.append((cur, possible_next_state))
                 new_context = copy.deepcopy(context)
                 new_context.getVar(fixed_next_state).set_vals([possible_next_state])
