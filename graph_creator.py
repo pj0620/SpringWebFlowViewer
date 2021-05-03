@@ -3,6 +3,9 @@ import xml
 from constants import ALL_STATES, STATE_COLORS, START_STATE_COLOR, EXTERNAL_STATE_COLOR
 import networkx as nx
 from scope import Context
+import sys
+
+scanned_nodes = 0
 
 def make_graph_BFS(flowdom, track_vars, config):
     context = Context(track_vars)
@@ -71,6 +74,9 @@ def make_graph_BFS(flowdom, track_vars, config):
     visited = set()
     scanDomBFS(start_state, visited, context, edges, stateDOM_map, end_states, method_vals)
 
+    # needed to add new line after scanned nodes message
+    print("")
+
     print("Creating graph from results of scan...")
     G = nx.DiGraph()
     G.add_edges_from(edges)
@@ -81,6 +87,8 @@ def make_graph_BFS(flowdom, track_vars, config):
 
 
 def scanDomBFS(cur, visited, context, edges, stateDOM_map, end_states, method_vals):
+    update_scanned_nodes()
+
     if cur in end_states or cur in visited:
         return
 
@@ -216,3 +224,9 @@ def handle_set_node(set_node, context):
     var_name = set_node.getAttribute("name")
     if context.containsVar(var_name):
         context.getVar(var_name).set_vals([set_node.getAttribute("value")])
+
+def update_scanned_nodes():
+    global scanned_nodes
+    scanned_nodes += 1
+    print(f"\r {scanned_nodes} nodes scanned", end='')
+    sys.stdout.flush()

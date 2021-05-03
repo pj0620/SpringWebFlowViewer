@@ -20,7 +20,7 @@
 
     <view-state id="A1">
 		<transition on="a" to="A2"/>
-		<transition on="b" to="extern"/>
+<!--		<transition on="b" to="extern"/>-->
 	</view-state>
 
     <view-state id="A2">
