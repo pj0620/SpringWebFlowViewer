@@ -1,6 +1,6 @@
 import copy
 import xml
-from constants import ALL_STATES, STATE_COLORS, START_STATE_COLOR
+from constants import ALL_STATES, STATE_COLORS, START_STATE_COLOR, EXTERNAL_STATE_COLOR
 import networkx as nx
 from scope import Context
 
@@ -13,6 +13,14 @@ def make_graph_BFS(flowdom, track_vars, config):
                 context.getVar(initial_val.split(":")[0]).set_vals([initial_val.split(":")[1]])
         except:
             raise Exception("error while parsing variable overrides")
+
+    external_nodes = set()
+    if "external_states" in config:
+        print("Using following external nodes : " + config["external_states"])
+        try:
+            external_nodes = set(config["external_states"].split(","))
+        except:
+            raise Exception("error while parsing external nodes")
 
     method_vals = {}
     if 'method_vals' in config:
@@ -54,6 +62,10 @@ def make_graph_BFS(flowdom, track_vars, config):
                 end_states.add(state)
     nodes_colors_map[start_state] = START_STATE_COLOR
 
+    for external_node in external_nodes:
+        stateDOM_map[external_node] = None
+        nodes_colors_map[external_node] = EXTERNAL_STATE_COLOR
+
     edges = []
     visited = set()
     scanDomBFS(start_state, visited, context, edges, stateDOM_map, end_states, method_vals)
@@ -65,7 +77,6 @@ def make_graph_BFS(flowdom, track_vars, config):
 
     return G, colors
 
-"added -i option to initialize a variable"
 
 def scanDomBFS(cur, visited, context, edges, stateDOM_map, end_states, method_vals):
     if cur in end_states or cur in visited:
@@ -109,8 +120,15 @@ def scanDomBFS(cur, visited, context, edges, stateDOM_map, end_states, method_va
                 new_context = copy.deepcopy(context)
                 new_context.getVar(fixed_next_state).set_vals([possible_next_state])
                 new_visited = copy.deepcopy(visited)
-                if stateDOM_map[possible_next_state].childNodes:
-                    parse_non_transitions_node(stateDOM_map[possible_next_state], new_context, method_vals)
+                try:
+                    dom = stateDOM_map[possible_next_state]
+                except:
+                    raise Exception(f"unknown state '{possible_next_state}', if this is an external state please specify it "
+                                    f"using --external <EXTERNAL NODES>")
+                if not dom:
+                    continue
+                if dom.childNodes:
+                    parse_non_transitions_node(dom, new_context, method_vals)
                 scanDomBFS(possible_next_state, new_visited, new_context, edges, stateDOM_map, end_states, method_vals)
 
         # otherwise continue to next state
@@ -120,8 +138,15 @@ def scanDomBFS(cur, visited, context, edges, stateDOM_map, end_states, method_va
             edges.append((cur, next_state))
             new_visited = copy.deepcopy(visited)
             new_context = copy.deepcopy(context)
-            if stateDOM_map[next_state].childNodes:
-                parse_non_transitions_node(stateDOM_map[next_state], new_context, method_vals)
+            try:
+                dom = stateDOM_map[next_state]
+            except:
+                raise Exception(f"unknown state '{next_state}', if this is an external state please specify it using "
+                                f"--external <EXTERNAL NODES>")
+            if not dom:
+                continue
+            if dom.childNodes:
+                parse_non_transitions_node(dom, new_context, method_vals)
             scanDomBFS(next_state, new_visited, new_context, edges, stateDOM_map, end_states, method_vals)
 
 

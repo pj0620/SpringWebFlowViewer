@@ -15,3 +15,4 @@ STATE_COLORS = {
 }
 
 START_STATE_COLOR = "green"
+EXTERNAL_STATE_COLOR = "grey"

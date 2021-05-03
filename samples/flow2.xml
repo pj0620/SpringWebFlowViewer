@@ -6,7 +6,7 @@
 		https://www.springframework.org/schema/webflow/spring-webflow-2.0.xsd">
 
     <on-start>
-<!--        <evaluate expression="testService.getPath()" result="flowScope.path" />-->
+        <evaluate expression="testService.getPath()" result="flowScope.path" />
     </on-start>
 
 	<view-state id="start">
@@ -20,6 +20,7 @@
 
     <view-state id="A1">
 		<transition on="a" to="A2"/>
+		<transition on="b" to="extern"/>
 	</view-state>
 
     <view-state id="A2">
