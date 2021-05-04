@@ -1,37 +1,52 @@
 class Context:
     def __init__(self, track_vars):
-        self.vars = {var: ScopeVariable(var, None) for var in track_vars}
-        self.varsNameSet = set(track_vars)
+        self.vars = {var: frozenset() for var in track_vars}
+        self.changed_vars = set()
+        self.hash = 0
 
-    def containsVar(self, varName):
-        return varName in self.varsNameSet
+    def contains_var(self, var_name):
+        return var_name in self.vars.keys()
 
-    def getVar(self, varName):
-        return self.vars[varName]
+    def get_vals(self, var_name):
+        return self.vars[var_name]
+
+    def set_var(self, var_name, new_vals):
+        if not new_vals:
+            raise Exception("scope variables cannot be set to empty set after initialization, messes up hashing")
+
+        for i in range(len(new_vals)):
+            if new_vals[i][0] == "'":
+                new_vals[i] = new_vals[i][1:]
+            if new_vals[i][-1] == "'":
+                new_vals[i] = new_vals[i][:-1]
+
+        old_vals = self.vars[var_name]
+        self.vars[var_name] = frozenset(new_vals)
+
+        # update hash of context
+        update_changes = False
+        if var_name not in self.changed_vars:
+            update_changes = True
+            self.changed_vars.add(var_name)
+        update_changes = update_changes or old_vals != new_vals
+        if update_changes:
+            changed_set = frozenset((var_name, self.vars[var_name]) for var_name in self.changed_vars)
+            self.hash = hash(changed_set)
+
+    def __hash__(self):
+        return self.hash
 
     def __str__(self):
         res = ""
-        for var in self.vars.values():
-            res += var.name + "=" + str(var.vals) + ","
+        for var_name, vals in self.vars.items():
+            res += var_name + "=" + str(vals) + ","
         if len(res) > 0:
             return res[:-1]
         else:
             return ""
 
+    def __eq__(self, other):
+        return self.vars == other.vars
 
-class ScopeVariable:
-    def __init__(self, name, vals):
-        self.name = name
-        self.vals = vals
-
-    def set_vals(self, new_vals):
-        self.vals = new_vals
-
-        for i in range(len(self.vals)):
-            if self.vals[i][0] == "'":
-                self.vals[i] = self.vals[i][1:]
-            if self.vals[i][-1] == "'":
-                self.vals[i] = self.vals[i][:-1]
-
-    def get_vals(self):
-        return self.vals
+    def __ne__(self, other):
+        return not (self == other)

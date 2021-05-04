@@ -6,6 +6,7 @@ from scope import Context
 import sys
 
 scanned_nodes = 0
+nodes_contexts_set = set()
 
 def make_graph_BFS(flowdom, track_vars, config):
     context = Context(track_vars)
@@ -13,7 +14,7 @@ def make_graph_BFS(flowdom, track_vars, config):
         print("Initializing variables with following : " + config['initial_vals'])
         try:
             for initial_val in config['initial_vals'].split(','):
-                context.getVar(initial_val.split(":")[0]).set_vals([initial_val.split(":")[1]])
+                context.set_var(initial_val.split(":")[0], [initial_val.split(":")[1]])
         except:
             raise Exception("error while parsing variable overrides")
 
@@ -70,7 +71,7 @@ def make_graph_BFS(flowdom, track_vars, config):
         nodes_colors_map[external_node] = EXTERNAL_STATE_COLOR
 
     print("Mapping flow file...")
-    edges = []
+    edges = set()
     visited = set()
     scanDomBFS(start_state, visited, context, edges, stateDOM_map, end_states, method_vals)
 
@@ -86,7 +87,14 @@ def make_graph_BFS(flowdom, track_vars, config):
     return G, colors
 
 
-def scanDomBFS(cur, visited, context, edges, stateDOM_map, end_states, method_vals):
+def scanDomBFS(cur, visited, context: Context, edges, stateDOM_map, end_states, method_vals):
+    # break if we have already scanned this node with this context
+    global nodes_contexts_set
+    if (cur, context) in nodes_contexts_set:
+        return
+    else:
+        nodes_contexts_set.add((cur,context))
+
     update_scanned_nodes()
 
     if cur in end_states or cur in visited:
@@ -121,16 +129,16 @@ def scanDomBFS(cur, visited, context, edges, stateDOM_map, end_states, method_va
         # if next state is a scope variable, branch with every possibility
         if "#{" in next_state:
             fixed_next_state = next_state.replace("#{", "").replace("}", "")
-            possible_next_states = context.getVar(fixed_next_state).get_vals()
+            possible_next_states = context.get_vals(fixed_next_state)
             if not possible_next_states:
                 raise Exception(f"value of {fixed_next_state} cannot be inferred from flow file, please initialize "
                                 f"this variable using using --initialize <VARIABLE VALUES>")
             for possible_next_state in possible_next_states:
                 if possible_next_state == "null":
                     continue
-                edges.append((cur, possible_next_state))
+                edges.add((cur, possible_next_state))
                 new_context = copy.deepcopy(context)
-                new_context.getVar(fixed_next_state).set_vals([possible_next_state])
+                new_context.set_var(fixed_next_state, [possible_next_state])
                 new_visited = copy.deepcopy(visited)
                 try:
                     dom = stateDOM_map[possible_next_state]
@@ -147,7 +155,7 @@ def scanDomBFS(cur, visited, context, edges, stateDOM_map, end_states, method_va
         else:
             if next_state in visited:
                 continue
-            edges.append((cur, next_state))
+            edges.add((cur, next_state))
             new_visited = copy.deepcopy(visited)
             new_context = copy.deepcopy(context)
             try:
@@ -164,17 +172,19 @@ def scanDomBFS(cur, visited, context, edges, stateDOM_map, end_states, method_va
 
 def make_graph_no_BFS(flowdom):
     nodes_states_map = {}
-    edges = []
+    edges = set()
     track_vars = []
     for state in ALL_STATES:
         scanDom(flowdom, state, edges, nodes_states_map, track_vars)
 
     G = nx.DiGraph()
     G.add_edges_from(edges)
-    # colors = [STATE_COLORS[nodes_states_map[node]] for node in G.nodes()]
-    colors = ["blue"]*len(G.nodes)
+    colors = None
+    if not track_vars:
+        colors = [STATE_COLORS[nodes_states_map[node]] for node in G.nodes()]
 
     return G, colors, track_vars
+
 
 # scans minidom node for states, and edges
 #  - edges appended to provided list
@@ -185,7 +195,7 @@ def scanDom(flowdom, stateName, edges, nodes_states_map, track_vars):
 
     def add_edge(state, next_state):
         if next_state:
-            edges.append((state, next_state))
+            edges.add((state, next_state))
             if "#{" in next_state:
                 track_vars.append(next_state.replace("#{", "").replace("}", ""))
 
@@ -204,26 +214,29 @@ def scanDom(flowdom, stateName, edges, nodes_states_map, track_vars):
 #
 #   will go beyond first layer
 #
-def parse_non_transitions_node(node, context, method_vals):
+def parse_non_transitions_node(node, context: Context, method_vals):
     for evaluate_node in node.getElementsByTagName('evaluate'):
         handle_evaluate_node(evaluate_node, context, method_vals)
     for set_node in node.getElementsByTagName('set'):
         handle_set_node(set_node, context)
 
-def handle_evaluate_node(evaluate_node, context, method_vals):
+
+def handle_evaluate_node(evaluate_node, context: Context, method_vals):
     var_name = evaluate_node.getAttribute("result")
     method_call = evaluate_node.getAttribute("expression")
-    if context.containsVar(var_name):
+    if context.contains_var(var_name):
         if method_call in method_vals:
-            context.getVar(var_name).set_vals(method_vals[method_call])
+            context.set_var(var_name, method_vals[method_call])
         else:
             raise Exception(
                 "output values of \'" + method_call + "\' not defined, please define using --method_vals <METHOD_VALUES>")
 
-def handle_set_node(set_node, context):
+
+def handle_set_node(set_node, context: Context):
     var_name = set_node.getAttribute("name")
-    if context.containsVar(var_name):
-        context.getVar(var_name).set_vals([set_node.getAttribute("value")])
+    if context.contains_var(var_name):
+        context.set_var(var_name, [set_node.getAttribute("value")])
+
 
 def update_scanned_nodes():
     global scanned_nodes
