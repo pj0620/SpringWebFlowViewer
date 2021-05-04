@@ -110,7 +110,7 @@ def scanDomBFS(cur, visited, context: Context, edges, stateDOM_map, end_states, 
         if child.localName == 'evaluate':
             handle_evaluate_node(child, context, method_vals)
         elif child.localName == 'set':
-            handle_set_node(child, context)
+            handle_set_node(child, context, method_vals)
         elif child.localName == "transition":
             next_state = child.getAttribute("to")
             if next_state:
@@ -218,7 +218,7 @@ def parse_non_transitions_node(node, context: Context, method_vals):
     for evaluate_node in node.getElementsByTagName('evaluate'):
         handle_evaluate_node(evaluate_node, context, method_vals)
     for set_node in node.getElementsByTagName('set'):
-        handle_set_node(set_node, context)
+        handle_set_node(set_node, context, method_vals)
 
 
 def handle_evaluate_node(evaluate_node, context: Context, method_vals):
@@ -232,10 +232,18 @@ def handle_evaluate_node(evaluate_node, context: Context, method_vals):
                 "output values of \'" + method_call + "\' not defined, please define using --method_vals <METHOD_VALUES>")
 
 
-def handle_set_node(set_node, context: Context):
+def handle_set_node(set_node, context: Context, method_vals):
     var_name = set_node.getAttribute("name")
+    val = set_node.getAttribute("value")
     if context.contains_var(var_name):
-        context.set_var(var_name, [set_node.getAttribute("value")])
+        if "(" in val:
+            if val in method_vals:
+                context.set_var(var_name, method_vals[val])
+            else:
+                raise Exception(
+                    "output values of \'" + val + "\' not defined, please define using --method_vals <METHOD_VALUES>")
+        else:
+            context.set_var(var_name, [val])
 
 
 def update_scanned_nodes():
