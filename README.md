@@ -1,5 +1,5 @@
 # SpringWebFlowViewer
-View Spring Webflow file as Directed Graph. 
+Tool written in python used to view Spring Webflow files as a Directed Graph. 
 
 ## Testing
 ```
