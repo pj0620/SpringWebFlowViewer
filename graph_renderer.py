@@ -13,5 +13,5 @@ def render(G, colors):
     #  see __all__ list in 'networkx/drawing/layout.py'
     pos = nx.kamada_kawai_layout(G)
     nx.draw(G, node_color=colors, pos=pos, **render_settings)
-    plt.savefig('Figure_1.png', dpi=300, bbox_inches='tight')
+    # plt.savefig('flow.png', dpi=300, bbox_inches='tight')
     plt.show()
