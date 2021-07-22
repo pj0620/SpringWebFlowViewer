@@ -3,12 +3,12 @@ Tool written in python used to view flows defined in Spring Webflow files as a D
 
 ## Installing Requirements
 ```
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 ## Testing
 ```
-flow_viewer.py samples\booking-flow.xml
+python flow_viewer.py samples\booking-flow.xml
 ```
 
 Should result in the following.
