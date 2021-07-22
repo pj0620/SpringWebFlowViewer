@@ -1,6 +1,5 @@
 import networkx as nx
 import matplotlib.pyplot as plt
-import pylab
 
 render_settings = {
     "node_size": 2000,
@@ -10,7 +9,9 @@ render_settings = {
 }
 
 def render(G, colors):
-    # pos = nx.spring_layout(G)
-    nx.draw(G, node_color=colors, **render_settings)
-    plt.savefig('plotgraph.png', dpi=300, bbox_inches='tight')
+    # play with this value to change the graph layout
+    #  see __all__ list in 'networkx/drawing/layout.py'
+    pos = nx.kamada_kawai_layout(G)
+    nx.draw(G, node_color=colors, pos=pos, **render_settings)
+    plt.savefig('Figure_1.png', dpi=300, bbox_inches='tight')
     plt.show()

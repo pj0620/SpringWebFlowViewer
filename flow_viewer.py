@@ -28,7 +28,7 @@ def main(argv):
     G, colors, track_vars = make_graph_no_BFS(flowdom)
 
     # some Scope variables must be tracked, use BFS algorithm
-    if track_vars or True:
+    if track_vars:
         print("Detected scope variables that must be tracked. Building graph using BFS algorithm...")
         G, colors = make_graph_BFS(flowdom, track_vars, config)
 
