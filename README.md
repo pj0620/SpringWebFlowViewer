@@ -1,9 +1,14 @@
 # SpringWebFlowViewer
 Tool written in python used to view flows defined in Spring Webflow files as a Directed Graph. 
 
+## Installing Requirements
+```
+pip install -r requirements.txt
+```
+
 ## Testing
 ```
-flow_viewer.py spring-webflow-samples\booking-faces\src\main\webapp\WEB-INF\flows\main\main-flow.xml
+flow_viewer.py samples\booking-flow.xml
 ```
 
 Should result in the following.
