@@ -10,7 +10,7 @@ render_settings = {
 }
 
 def render(G, colors):
-    # pos = nx.spring_layout(G)
+    pos = nx.spectral_layout(G)
     nx.draw(G, node_color=colors, **render_settings)
     plt.savefig('plotgraph.png', dpi=300, bbox_inches='tight')
     plt.show()

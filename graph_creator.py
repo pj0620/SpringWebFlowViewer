@@ -53,8 +53,9 @@ def make_graph_BFS(flowdom, track_vars, config):
 
     # for speed build map from state id to dom objects
     # and create map from state id to state type for coloring
+    # all global states are end states
     stateDOM_map = {}
-    end_states = set()
+    end_states = external_nodes.copy()
     nodes_colors_map = {}
     for state_type in ALL_STATES:
         state_nodes = flowdom.getElementsByTagName(state_type)
@@ -88,6 +89,8 @@ def make_graph_BFS(flowdom, track_vars, config):
 
 
 def scanDomBFS(cur, visited, context: Context, edges, stateDOM_map, end_states, method_vals):
+    # print(f"{cur=} {visited=} {context=}")
+
     # break if we have already scanned this node with this context
     global nodes_contexts_set
     if (cur, context) in nodes_contexts_set:
@@ -95,7 +98,7 @@ def scanDomBFS(cur, visited, context: Context, edges, stateDOM_map, end_states, 
     else:
         nodes_contexts_set.add((cur,context))
 
-    update_scanned_nodes()
+    # update_scanned_nodes()
 
     if cur in end_states or cur in visited:
         return
@@ -153,8 +156,6 @@ def scanDomBFS(cur, visited, context: Context, edges, stateDOM_map, end_states, 
 
         # otherwise continue to next state
         else:
-            if next_state in visited:
-                continue
             edges.add((cur, next_state))
             new_visited = copy.deepcopy(visited)
             new_context = copy.deepcopy(context)

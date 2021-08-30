@@ -1,12 +1,6 @@
 import getopt
 import sys
-
-def print_usage():
-    print('flow-viewer.py <FLOW FILE> \n   -h, --help : display help\n   -s, --start_state <START-STATE> : add start state for BFS based search'\
-          '\n   -m, --method_vals <METHOD_VALUES> : comma separated list of predefined outputs of methods'\
-          '\n   -i, --initialize <VARIABLE VALUES> : comma seperated list of initial variable values. Useful when value of variable cannot be infered from flow file'\
-          '\n   -e, --external <EXTERNAL NODES> : comma separated list of external nodes')
-
+from common import print_usage
 
 def parseargs(argv):
     try:
@@ -18,11 +12,8 @@ def parseargs(argv):
         return flowfile, {}
 
     config = {}
-    try:
-        opts, args = getopt.getopt(argv[2:],"hs:m:i:e:",["help","start_state=","method_vals=","initialize=","external="])
-    except getopt.GetoptError:
-        print_usage()
-        sys.exit(2)
+    opts, args = getopt.getopt(argv[2:],"hs:m:i:e:g:",["help","start_state=","method_vals=","initialize=","external=","goal_state="])
+
     for opt, arg in opts:
        if opt in ("-h", "--help"):
           print_usage()
@@ -35,5 +26,7 @@ def parseargs(argv):
           config["initial_vals"] = arg
        elif opt in ("-e", "--external"):
           config["external_states"] = arg
+       elif opt in ("-g", "--goal_state"):
+           config["goal_state"] = arg
 
     return flowfile, config
